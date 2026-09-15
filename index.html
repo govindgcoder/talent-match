@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talent Match</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            m3: {
+              primary: '#6750A4',
+              onPrimary: '#FFFFFF',
+              primaryContainer: '#EADDFF',
+              onPrimaryContainer: '#21005D',
+              secondary: '#625B71',
+              onSecondary: '#FFFFFF',
+              secondaryContainer: '#E8DEF8',
+              onSecondaryContainer: '#1D192B',
+              surface: '#FEF7FF',
+              surfaceDim: '#DED8E1',
+              surfaceContainer: '#F3EDF7',
+              surfaceContainerLow: '#F7F2FA',
+              surfaceContainerHigh: '#ECE6F0',
+              surfaceContainerHighest: '#E6E0E9',
+              onSurface: '#1D1B20',
+              onSurfaceVariant: '#49454F',
+              outline: '#79747E',
+              outlineVariant: '#CAC4D0',
+              error: '#B3261E',
+              errorContainer: '#F9DEDC',
+              onError: '#FFFFFF',
+              onErrorContainer: '#410E0B',
+            },
+          },
+          borderRadius: {
+            '2xl': '1rem',
+            '3xl': '1.5rem',
+            'full': '9999px',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #FEF7FF; }
+
+    .m3-field { transition: border-color 0.2s, box-shadow 0.2s; }
+    .m3-field:focus-within { border-color: #6750A4; box-shadow: 0 0 0 1px #6750A4; }
+
+    .m3-btn-primary { transition: background 0.15s, box-shadow 0.15s; }
+    .m3-btn-primary:hover { box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15); }
+    .m3-btn-primary:active { transform: scale(0.98); }
+
+    .m3-card { transition: box-shadow 0.2s, transform 0.15s; }
+    .m3-card:hover { box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.06); }
+
+    .tab-active { background: #EADDFF; color: #21005D; }
+    .tab-inactive { background: transparent; color: #49454F; }
+    .tab-inactive:hover { background: #ECE6F0; }
+
+    .chip-active { background: #EADDFF; color: #21005D; border-color: #6750A4; }
+    .chip-inactive { background: #F3EDF7; color: #49454F; border-color: transparent; }
+    .chip-inactive:hover { background: #ECE6F0; }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .animate-slide-up { animation: slideUp 0.3s ease-out; }
+    .animate-fade-out { animation: fadeOut 0.3s ease-in forwards; }
+
+    .drop-zone-active { border-color: #6750A4 !important; background: #EADDFF !important; }
+
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body class="min-h-screen font-sans text-m3-onSurface">
+
+  <!-- Snackbar -->
+  <div id="snackbar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden">
+    <div id="snackbar-inner" class="px-5 py-3 rounded-2xl text-sm font-medium shadow-lg max-w-sm text-center pointer-events-auto"></div>
+  </div>
+
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <h1 class="text-2xl font-bold text-m3-onSurface">Talent Match</h1>
+      <p class="text-sm text-m3-onSurfaceVariant mt-1">Semantic candidate search with vector embeddings</p>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="flex gap-2 mb-8 bg-m3-surfaceContainerLow rounded-2xl p-1.5">
+      <button id="tab-register" onclick="switchTab('register')" class="flex-1 py-2.5 px-4 rounded-2xl text-sm font-medium transition-all duration-200 tab-active">
+        Candidate Registration
+      </button>
+      <button id="tab-search" onclick="switchTab('search')" class="flex-1 py-2.5 px-4 rounded-2xl text-sm font-medium transition-all duration-200 tab-inactive">
+        Recruiter Search
+      </button>
+    </nav>
+
+    <!-- Register View -->
+    <section id="view-register" class="animate-slide-up">
+      <form id="register-form" onsubmit="handleSubmit(event)" class="bg-m3-surfaceContainerLow rounded-3xl p-6 space-y-5">
+        <div class="m3-field rounded-2xl border border-m3-outlineVariant bg-m3-surface px-4 py-3">
+          <label class="block text-xs font-medium text-m3-onSurfaceVariant mb-1">Full Name</label>
+          <input name="name" type="text" required placeholder="e.g. Rahul Kumar" class="w-full bg-transparent outline-none text-sm text-m3-onSurface placeholder:text-m3-outline" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="m3-field rounded-2xl border border-m3-outlineVariant bg-m3-surface px-4 py-3">
+            <label class="block text-xs font-medium text-m3-onSurfaceVariant mb-1">Age</label>
+            <input name="age" type="number" min="18" max="100" required placeholder="25" class="w-full bg-transparent outline-none text-sm text-m3-onSurface placeholder:text-m3-outline" />
+          </div>
+          <div class="m3-field rounded-2xl border border-m3-outlineVariant bg-m3-surface px-4 py-3">
+            <label class="block text-xs font-medium text-m3-onSurfaceVariant mb-1">Gender</label>
+            <select name="gender" required class="w-full bg-transparent outline-none text-sm text-m3-onSurface appearance-none cursor-pointer">
+              <option value="" disabled selected>Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="m3-field rounded-2xl border border-m3-outlineVariant bg-m3-surface px-4 py-3">
+            <label class="block text-xs font-medium text-m3-onSurfaceVariant mb-1">Experience (years)</label>
+            <input name="experience_years" type="number" step="0.5" min="0" required placeholder="3.5" class="w-full bg-transparent outline-none text-sm text-m3-onSurface placeholder:text-m3-outline" />
+          </div>
+          <div class="m3-field rounded-2xl border border-m3-outlineVariant bg-m3-surface px-4 py-3">
+            <label class="block text-xs font-medium text-m3-onSurfaceVariant mb-1">Contact Number</label>
+            <input name="contact_no" type="tel" required placeholder="9876543210" class="w-full bg-transparent outline-none text-sm text-m3-onSurface placeholder:text-m3-outline" />
+          </div>
+        </div>
+
+        <!-- File upload card -->
+        <div id="drop-zone" class="m3-field rounded-2xl border-2 border-dashed border-m3-outlineVariant bg-m3-surfaceContainerLow flex flex-col items-center justify-center py-8 cursor-pointer transition-all duration-200 hover:border-m3-primary"
+             onclick="document.getElementById('file-input').click()">
+          <svg class="w-8 h-8 text-m3-primary mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16V4m0 0L8 8m4-4l4 4" />
+          </svg>
+          <p class="text-sm text-m3-onSurfaceVariant" id="drop-label">Drop resume PDF or click to browse</p>
+          <input id="file-input" type="file" accept=".pdf" />
+        </div>
+
+        <button type="submit" id="submit-btn" class="m3-btn-primary w-full py-3.5 rounded-2xl bg-m3-primary text-m3-onPrimary font-medium text-sm flex items-center justify-center gap-2">
+          <span id="submit-label">Submit Registration</span>
+          <svg id="submit-spinner" class="hidden animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+          </svg>
+        </button>
+      </form>
+    </section>
+
+    <!-- Search View -->
+    <section id="view-search" class="hidden">
+      <div class="bg-m3-surfaceContainerLow rounded-3xl p-6 space-y-5">
+        <!-- Search bar -->
+        <div class="m3-field rounded-full border border-m3-outlineVariant bg-m3-surface px-5 py-3 flex items-center gap-3">
+          <svg class="w-5 h-5 text-m3-onSurfaceVariant shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input id="search-query" type="text" placeholder="e.g. Embedded IoT engineer with RTOS experience"
+                 class="flex-1 bg-transparent outline-none text-sm text-m3-onSurface placeholder:text-m3-outline" />
+        </div>
+
+        <!-- Filter chips -->
+        <div class="space-y-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-medium text-m3-onSurfaceVariant mr-1">Experience:</span>
+            <button onclick="setExpFilter(null)" class="exp-chip chip-active px-3 py-1.5 rounded-full text-xs font-medium border transition-all">All</button>
+            <button onclick="setExpFilter(1)" class="exp-chip chip-inactive px-3 py-1.5 rounded-full text-xs font-medium border transition-all">1+ yrs</button>
+            <button onclick="setExpFilter(3)" class="exp-chip chip-inactive px-3 py-1.5 rounded-full text-xs font-medium border transition-all">3+ yrs</button>
+            <button onclick="setExpFilter(5)" class="exp-chip chip-inactive px-3 py-1.5 rounded-full text-xs font-medium border transition-all">5+ yrs</button>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-medium text-m3-onSurfaceVariant mr-1">Gender:</span>
+            <button onclick="setGenderFilter('')" class="gender-chip chip-active px-3 py-1.5 rounded-full text-xs font-medium border transition-all">All</button>
+            <button onclick="setGenderFilter('male')" class="gender-chip chip-inactive px-3 py-1.5 rounded-full text-xs font-medium border transition-all">Male</button>
+            <button onclick="setGenderFilter('female')" class="gender-chip chip-inactive px-3 py-1.5 rounded-full text-xs font-medium border transition-all">Female</button>
+            <button onclick="setGenderFilter('other')" class="gender-chip chip-inactive px-3 py-1.5 rounded-full text-xs font-medium border transition-all">Other</button>
+          </div>
+        </div>
+
+        <button onclick="handleSearch()" class="m3-btn-primary w-full py-3 rounded-2xl bg-m3-primary text-m3-onPrimary font-medium text-sm flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <span id="search-btn-label">Search</span>
+          <svg id="search-spinner" class="hidden animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Results -->
+      <div id="results-container" class="mt-6 space-y-4 hidden"></div>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="hidden text-center py-16">
+        <svg class="w-16 h-16 mx-auto text-m3-outlineVariant mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <p class="text-sm text-m3-onSurfaceVariant">No results yet. Search for candidates above.</p>
+      </div>
+
+      <!-- No results -->
+      <div id="no-results" class="hidden text-center py-16">
+        <svg class="w-16 h-16 mx-auto text-m3-outlineVariant mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-sm text-m3-onSurfaceVariant">No candidates match your criteria.</p>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { uploadCandidate, searchCandidates } from './api.js';
+
+    // --- State ---
+    let selectedFile = null;
+    let expFilter = null;
+    let genderFilter = '';
+    let searchSearched = false;
+
+    // --- Tab Switching ---
+    window.switchTab = function(tab) {
+      document.getElementById('view-register').classList.toggle('hidden', tab !== 'register');
+      document.getElementById('view-search').classList.toggle('hidden', tab !== 'search');
+
+      const regTab = document.getElementById('tab-register');
+      const srchTab = document.getElementById('tab-search');
+      regTab.className = `flex-1 py-2.5 px-4 rounded-2xl text-sm font-medium transition-all duration-200 ${tab === 'register' ? 'tab-active' : 'tab-inactive'}`;
+      srchTab.className = `flex-1 py-2.5 px-4 rounded-2xl text-sm font-medium transition-all duration-200 ${tab === 'search' ? 'tab-active' : 'tab-inactive'}`;
+    };
+
+    // --- Snackbar ---
+    function showSnackbar(message, type = 'success') {
+      const el = document.getElementById('snackbar');
+      const inner = document.getElementById('snackbar-inner');
+      inner.textContent = message;
+      inner.className = `px-5 py-3 rounded-2xl text-sm font-medium shadow-lg max-w-sm text-center pointer-events-auto ${
+        type === 'error'
+          ? 'bg-m3-errorContainer text-m3-onErrorContainer'
+          : 'bg-m3-primaryContainer text-m3-onPrimaryContainer'
+      }`;
+      el.classList.remove('hidden');
+      el.classList.remove('animate-fade-out');
+      clearTimeout(window._snackbarTimer);
+      window._snackbarTimer = setTimeout(() => {
+        el.classList.add('animate-fade-out');
+        setTimeout(() => el.classList.add('hidden'), 300);
+      }, 3500);
+    }
+
+    // --- File Upload Drag & Drop ---
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const dropLabel = document.getElementById('drop-label');
+
+    ['dragenter', 'dragover'].forEach(e => {
+      dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('drop-zone-active'); });
+    });
+    ['dragleave', 'drop'].forEach(e => {
+      dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('drop-zone-active'); });
+    });
+    dropZone.addEventListener('drop', ev => {
+      const f = ev.dataTransfer.files[0];
+      if (f && f.type === 'application/pdf') selectFile(f);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) selectFile(fileInput.files[0]);
+    });
+
+    function selectFile(f) {
+      selectedFile = f;
+      dropLabel.textContent = f.name;
+      dropLabel.classList.add('font-medium');
+      dropZone.classList.remove('border-dashed');
+    }
+
+    // --- Form Submit ---
+    window.handleSubmit = async function(e) {
+      e.preventDefault();
+      if (!selectedFile) { showSnackbar('Please select a resume PDF.', 'error'); return; }
+
+      const form = e.target;
+      const btn = document.getElementById('submit-btn');
+      const label = document.getElementById('submit-label');
+      const spinner = document.getElementById('submit-spinner');
+
+      btn.disabled = true;
+      label.textContent = 'Uploading...';
+      spinner.classList.remove('hidden');
+
+      try {
+        await uploadCandidate({
+          name: form.name.value,
+          age: parseInt(form.age.value),
+          gender: form.gender.value,
+          experience_years: parseFloat(form.experience_years.value),
+          contact_no: form.contact_no.value,
+          resume_file: selectedFile,
+        });
+        showSnackbar('Candidate registered successfully!');
+        form.reset();
+        selectedFile = null;
+        dropLabel.textContent = 'Drop resume PDF or click to browse';
+        dropLabel.classList.remove('font-medium');
+        dropZone.classList.add('border-dashed');
+      } catch (err) {
+        showSnackbar(err.message || 'Upload failed', 'error');
+      } finally {
+        btn.disabled = false;
+        label.textContent = 'Submit Registration';
+        spinner.classList.add('hidden');
+      }
+    };
+
+    // --- Filter Chips ---
+    window.setExpFilter = function(val) {
+      expFilter = val;
+      document.querySelectorAll('.exp-chip').forEach((ch, i) => {
+        const isActive = (val === null && i === 0) || (val === 1 && i === 1) || (val === 3 && i === 2) || (val === 5 && i === 3);
+        ch.className = `exp-chip px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${isActive ? 'chip-active' : 'chip-inactive'}`;
+      });
+    };
+
+    window.setGenderFilter = function(val) {
+      genderFilter = val;
+      document.querySelectorAll('.gender-chip').forEach((ch, i) => {
+        const vals = ['', 'male', 'female', 'other'];
+        const isActive = vals[i] === val;
+        ch.className = `gender-chip px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${isActive ? 'chip-active' : 'chip-inactive'}`;
+      });
+    };
+
+    // --- Search ---
+    window.handleSearch = async function() {
+      const query = document.getElementById('search-query').value.trim();
+      if (!query) { showSnackbar('Enter a search query.', 'error'); return; }
+
+      const btn = document.getElementById('search-btn');
+      const label = document.getElementById('search-btn-label');
+      const spinner = document.getElementById('search-spinner');
+      btn.disabled = true;
+      label.textContent = 'Searching...';
+      spinner.classList.remove('hidden');
+
+      try {
+        const params = { query };
+        if (expFilter !== null) params.min_experience = expFilter;
+        if (genderFilter) params.gender = genderFilter;
+
+        const results = await searchCandidates(params);
+        renderResults(results);
+      } catch (err) {
+        showSnackbar(err.message || 'Search failed', 'error');
+      } finally {
+        btn.disabled = false;
+        label.textContent = 'Search';
+        spinner.classList.add('hidden');
+      }
+    };
+
+    function renderResults(results) {
+      searchSearched = true;
+      const container = document.getElementById('results-container');
+      const emptyState = document.getElementById('empty-state');
+      const noResults = document.getElementById('no-results');
+
+      emptyState.classList.add('hidden');
+      noResults.classList.add('hidden');
+
+      if (!results || results.length === 0) {
+        container.classList.add('hidden');
+        noResults.classList.remove('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      container.innerHTML = results.map((c, i) => {
+        const score = Math.round((c.similarity_score || 0) * 100);
+        return `
+          <div class="m3-card bg-m3-surfaceContainerLow rounded-2xl p-5 animate-slide-up" style="animation-delay: ${i * 50}ms">
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="text-base font-semibold text-m3-onSurface">${c.name}</h3>
+                <p class="text-sm text-m3-onSurfaceVariant mt-0.5">${c.experience_years} yrs experience</p>
+                <p class="text-sm text-m3-onSurfaceVariant">Contact: ${c.contact_no}</p>
+                <p class="text-xs text-m3-outline mt-1">Age: ${c.age}</p>
+              </div>
+              <span class="bg-m3-primaryContainer text-m3-onPrimaryContainer px-3 py-1 rounded-full text-xs font-semibold shrink-0">
+                ${score}% Match
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>
