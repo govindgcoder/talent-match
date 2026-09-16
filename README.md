@@ -1,18 +1,28 @@
 # Talent Match — Vector Database Candidate Search
 
 ## Setup
+Clone the repo
+```bash
+git clone https://github.com/govindgcoder/talent-match.git
+cd talent-match
+```
 
 ### Backend (FastAPI)
+once cloned, run
 ```bash
-cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
 ### Frontend
+Then open a new terminal window,
 ```bash
-# Option 1: Python (cd to directory with index.html)
+cd your/path/to/talent-match
+
+# Option 1: Python
 python -m http.server 3000
+
+# or
 
 # Option 2: Node
 npx serve frontend -p 3000
