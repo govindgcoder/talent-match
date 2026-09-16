@@ -11,8 +11,7 @@ uvicorn main:app --reload --port 8000
 
 ### Frontend
 ```bash
-# Option 1: Python
-cd frontend
+# Option 1: Python (cd to directory with index.html)
 python -m http.server 3000
 
 # Option 2: Node

@@ -1,5 +1,6 @@
 const API_BASE = "http://localhost:8000";
 
+// test
 export async function uploadCandidate({ name, age, gender, experience_years, contact_no, resume_file }) {
   const form = new FormData();
   form.append("name", name);
