@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruiter Portal — Talent Match</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <main class="container-wide">
+    <div class="card">
+      
+      <!-- Top Action: Switch / Register Company -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h1 style="font-size: 1.3rem;">Candidate Matching & Evaluation</h1>
+        <a href="recruiter_login.html" class="btn-secondary" style="font-size: 0.78rem;">
+          ⚙ Switch / Register Company
+        </a>
+      </div>
+
+      <!-- Active Company Profile Banner -->
+      <div id="company-banner" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <div style="font-size: 0.72rem; color: #6366f1; font-weight: 700; text-transform: uppercase;">Active Requirement</div>
+          <div id="company-name-display" style="font-size: 1.15rem; font-weight: 700; color: #0f172a;">Google</div>
+          <div id="company-details-display" style="font-size: 0.82rem; color: #64748b; margin-top: 2px;">
+            Role: Full Stack AI Engineer • Expected: Python, React, FastAPI, Machine Learning
+          </div>
+        </div>
+        <button type="button" id="view-suited-btn" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.82rem;">
+          View Best Suited Applicants
+        </button>
+      </div>
+
+      <!-- Search Input Box -->
+      <div class="search-bar-wrapper">
+        <div class="search-input-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input id="search-query" type="text" class="search-input-field" placeholder="Search by name, skill (e.g. Python, SQL)..." />
+          <button type="button" id="search-btn" class="btn-secondary">Search</button>
+        </div>
+      </div>
+
+      <!-- Applicants Results Grid -->
+      <section style="margin-top: 18px;">
+        <div id="results-count" style="font-size: 0.82rem; color: #64748b; margin-bottom: 12px; font-weight: 600;"></div>
+        <div id="results-grid" class="results-grid"></div>
+        <div id="empty-state" style="display: none; text-align: center; padding: 32px; color: #94a3b8;">
+          <h3 style="font-size: 1rem; color: #475569;">No Applicants Found</h3>
+          <p style="font-size: 0.82rem; margin-top: 4px;">Try clearing the search query or registering new candidates.</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { getCompanyApplicants, searchCandidates, getResumeUrl } from './api.js';
+
+    let activeCompany = JSON.parse(localStorage.getItem('activeCompany') || 'null');
+    const compNameDisplay = document.getElementById('company-name-display');
+    const compDetailsDisplay = document.getElementById('company-details-display');
+    const viewSuitedBtn = document.getElementById('view-suited-btn');
+    const searchInput = document.getElementById('search-query');
+    const searchBtn = document.getElementById('search-btn');
+    const resultsCount = document.getElementById('results-count');
+    const resultsGrid = document.getElementById('results-grid');
+    const emptyState = document.getElementById('empty-state');
+
+    if (activeCompany) {
+      compNameDisplay.textContent = activeCompany.company_name;
+      compDetailsDisplay.textContent = `Role: ${activeCompany.role_title} (${activeCompany.experience_type}) • Expected: ${activeCompany.skills_expected}`;
+    } else {
+      compNameDisplay.textContent = "Google";
+      activeCompany = { company_id: 1, company_name: "Google", role_title: "Full Stack AI Engineer" };
+    }
+
+    async function loadSuitedApplicants() {
+      resultsGrid.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">Loading matched applicants...</div>';
+      try {
+        const data = await getCompanyApplicants(activeCompany.company_id);
+        renderCandidates(data, `Matched for ${activeCompany.company_name}`);
+      } catch (err) {
+        resultsGrid.innerHTML = `<div style="color: #b91c1c; text-align: center;">Error loading applicants: ${err.message}</div>`;
+      }
+    }
+
+    async function handleSearch() {
+      const q = searchInput.value.trim();
+      resultsGrid.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">Searching...</div>';
+      try {
+        const data = await searchCandidates({ query: q });
+        renderCandidates(data, q ? `Search for "${q}"` : 'All Candidates');
+      } catch (err) {
+        resultsGrid.innerHTML = `<div style="color: #b91c1c; text-align: center;">Search error: ${err.message}</div>`;
+      }
+    }
+
+    function renderCandidates(candidates, label) {
+      if (!candidates || candidates.length === 0) {
+        resultsCount.textContent = `Found 0 applicants (${label})`;
+        resultsGrid.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+      emptyState.style.display = 'none';
+      resultsCount.textContent = `Found ${candidates.length} applicant${candidates.length > 1 ? 's' : ''} (${label})`;
+
+      resultsGrid.innerHTML = candidates.map(c => {
+        const score = c.match_score !== undefined ? c.match_score : null;
+        const name = c.candidate_name || c.name;
+        const exp = c.experience_years;
+        const resumeUrl = getResumeUrl(c.candidate_uid || c.uid);
+
+        return `
+          <article class="candidate-card">
+            <div class="candidate-top">
+              <h3 class="candidate-name">${name}</h3>
+              ${score !== null ? `<span class="match-badge">${score}% Match</span>` : ''}
+            </div>
+            <div class="candidate-details">
+              <div><span class="detail-label">Experience:</span><strong>${exp} yrs</strong></div>
+              <div><span class="detail-label">Age:</span><strong>${c.age}</strong></div>
+              <div><span class="detail-label">Gender:</span><strong style="text-transform: capitalize;">${c.gender}</strong></div>
+              <div><span class="detail-label">Contact:</span><strong>${c.contact_no}</strong></div>
+            </div>
+            ${c.matching_skills ? `<div style="font-size: 0.78rem; color: #15803d; margin-top: 6px;"><strong>Matched:</strong> ${c.matching_skills}</div>` : ''}
+            ${c.missing_skills ? `<div style="font-size: 0.78rem; color: #b45309; margin-top: 2px;"><strong>Missing:</strong> ${c.missing_skills}</div>` : ''}
+            ${c.skills && !c.matching_skills ? `<div style="font-size: 0.78rem; color: #4338ca; margin-top: 4px;">Skills: ${c.skills}</div>` : ''}
+            <div class="candidate-actions">
+              <a href="${resumeUrl}" target="_blank" class="btn-secondary" style="color: #4338ca; border-color: #c7d2fe; background: #eef2ff;">View Resume PDF</a>
+              <button type="button" class="btn-secondary" onclick="navigator.clipboard.writeText('${c.contact_no}'); alert('Copied: ${c.contact_no}');">Copy Contact</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    viewSuitedBtn.addEventListener('click', loadSuitedApplicants);
+    searchBtn.addEventListener('click', handleSearch);
+    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
+
+    loadSuitedApplicants();
+  </script>
+</body>
+</html>

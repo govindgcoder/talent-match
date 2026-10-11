@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Database Inspector — Talent Match</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <main class="container-wide">
+    <div class="card">
+
+      <!-- Header -->
+      <div class="header" style="text-align: left; border-bottom: 1px solid #e2e8f0; padding-bottom: 14px;">
+        <h1 style="font-size: 1.35rem;">Database & Schema Inspector</h1>
+        <p class="subtext">Inspecting SQLite relational tables, views, and triggers</p>
+      </div>
+
+      <!-- Action Toolbar & Tabs -->
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 16px 0;">
+        <button type="button" class="tab-chip active" id="btn-comp" onclick="switchTable('COMPANY')">1. COMPANY Table</button>
+        <button type="button" class="tab-chip" id="btn-cand" onclick="switchTable('candidates')">2. candidates Table</button>
+        <button type="button" class="tab-chip" id="btn-app" onclick="switchTable('applications')">3. applications</button>
+        <button type="button" class="tab-chip" id="btn-view" onclick="switchTable('v_matched_profiles')">4. v_matched_profiles (VIEW)</button>
+        <button type="button" class="tab-chip" id="btn-audit" onclick="switchTable('audit_log')">5. audit_log (TRIGGER)</button>
+        <button type="button" id="refresh-btn" class="btn-primary" style="margin-left: auto; width: auto; padding: 7px 14px; font-size: 0.8rem;">↻ Refresh</button>
+      </div>
+
+      <!-- Status info -->
+      <div style="font-size: 0.84rem; color: #64748b; display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <span>Object: <strong id="lbl-table" style="color: #0f172a;">COMPANY</strong></span>
+        <span id="lbl-count" style="color: #166534; font-weight: 700;">0 records</span>
+      </div>
+
+      <!-- Data Table Display -->
+      <div class="admin-table-wrap">
+        <table class="admin-tbl">
+          <thead id="tbl-head"></thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let dbData = {};
+    let activeTable = 'COMPANY';
+
+    async function fetchDatabase() {
+      try {
+        const res = await fetch('http://localhost:8000/api/admin/tables');
+        dbData = await res.json();
+        renderTable(activeTable);
+      } catch (err) {
+        document.getElementById('tbl-body').innerHTML = `<tr><td style="color:#b91c1c; text-align:center; padding:20px;">Could not connect to backend: ${err.message}</td></tr>`;
+      }
+    }
+
+    function switchTable(name) {
+      activeTable = name;
+      ['btn-comp', 'btn-cand', 'btn-app', 'btn-view', 'btn-audit'].forEach(id => document.getElementById(id).classList.remove('active'));
+      if (name === 'COMPANY') document.getElementById('btn-comp').classList.add('active');
+      if (name === 'candidates') document.getElementById('btn-cand').classList.add('active');
+      if (name === 'applications') document.getElementById('btn-app').classList.add('active');
+      if (name === 'v_matched_profiles') document.getElementById('btn-view').classList.add('active');
+      if (name === 'audit_log') document.getElementById('btn-audit').classList.add('active');
+      renderTable(name);
+    }
+
+    function renderTable(name) {
+      document.getElementById('lbl-table').textContent = name;
+      const rows = dbData[name] || [];
+      document.getElementById('lbl-count').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
+
+      const thead = document.getElementById('tbl-head');
+      const tbody = document.getElementById('tbl-body');
+
+      if (!rows || rows.length === 0) {
+        thead.innerHTML = '';
+        tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8;">(No records found in this table yet)</td></tr>';
+        return;
+      }
+
+      const columns = Object.keys(rows[0]);
+      thead.innerHTML = `<tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>`;
+      tbody.innerHTML = rows.map(r => `<tr>${columns.map(c => `<td>${r[c] !== null && r[c] !== undefined ? String(r[c]) : ''}</td>`).join('')}</tr>`).join('');
+    }
+
+    document.getElementById('refresh-btn').addEventListener('click', fetchDatabase);
+    fetchDatabase();
+  </script>
+</body>
+</html>

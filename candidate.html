@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Candidate Portal — Talent Match</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <main class="container">
+    <div class="card">
+
+      <!-- Header -->
+      <div class="header">
+        <h1>Candidate Registration</h1>
+        <p class="subtext">Enter your details and upload resume to find top hiring companies</p>
+      </div>
+
+      <!-- Registration Form -->
+      <form id="candidate-form">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input id="name" type="text" placeholder="e.g. Alex Morgan" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="age">Age</label>
+            <input id="age" type="number" min="18" max="100" placeholder="22" required />
+          </div>
+          <div class="form-group">
+            <label for="gender">Gender</label>
+            <select id="gender" required>
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="experience">Experience (Years)</label>
+            <input id="experience" type="number" step="0.5" min="0" max="40" placeholder="1.5" required />
+          </div>
+          <div class="form-group">
+            <label for="contact">Contact Number</label>
+            <input id="contact" type="tel" placeholder="9876543210" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="resume">Upload Resume (PDF)</label>
+          <input id="resume" type="file" accept=".pdf,application/pdf" required />
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn-primary" style="margin-top: 8px;">
+          <span id="submit-label">Register & Find Best Companies</span>
+        </button>
+
+        <div id="status-message" style="display: none;"></div>
+      </form>
+
+      <!-- Top 3 Companies Recommendation Section -->
+      <section id="top-companies-section" style="display: none; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 18px;">
+        <h2 style="font-size: 1.1rem; text-align: center; margin-bottom: 4px;">Top 3 Best Companies For You</h2>
+        <p class="subtext" style="text-align: center; margin-bottom: 14px;">Acquire missing skills to maximize selection probability</p>
+        <div id="top-companies-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { uploadCandidate } from './api.js';
+
+    const form = document.getElementById('candidate-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitLabel = document.getElementById('submit-label');
+    const statusBox = document.getElementById('status-message');
+    const topCompSection = document.getElementById('top-companies-section');
+    const topCompList = document.getElementById('top-companies-list');
+
+    function showStatus(text, type) {
+      statusBox.style.display = 'block';
+      statusBox.textContent = text;
+      statusBox.style.background = type === 'error' ? '#fef2f2' : type === 'success' ? '#f0fdf4' : '#eef2ff';
+      statusBox.style.color = type === 'error' ? '#991b1b' : type === 'success' ? '#166534' : '#3730a3';
+      statusBox.style.border = type === 'error' ? '1px solid #fecaca' : type === 'success' ? '1px solid #bbf7d0' : '1px solid #c7d2fe';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value.trim();
+      const age = document.getElementById('age').value;
+      const gender = document.getElementById('gender').value;
+      const exp = document.getElementById('experience').value;
+      const contact = document.getElementById('contact').value.trim();
+      const file = document.getElementById('resume').files[0];
+
+      if (!name || name.length < 2) return showStatus('Please enter full name (min 2 chars).', 'error');
+      if (!age || Number(age) < 18) return showStatus('Age must be at least 18.', 'error');
+      if (!gender) return showStatus('Please select gender.', 'error');
+      if (exp === '' || Number(exp) < 0) return showStatus('Experience cannot be negative.', 'error');
+      if (!contact || contact.replace(/\D/g, '').length < 10) return showStatus('Enter valid 10-digit contact number.', 'error');
+      if (!file || !file.name.toLowerCase().endsWith('.pdf')) return showStatus('Upload a valid PDF resume.', 'error');
+
+      submitBtn.disabled = true;
+      submitLabel.textContent = 'Processing Resume...';
+      showStatus('Extracting skills and finding best company matches...', 'info');
+
+      try {
+        const res = await uploadCandidate({ name, age: parseInt(age), gender, experience_years: parseFloat(exp), contact_no: contact, resume_file: file });
+        showStatus('Registered successfully! Resume processed.', 'success');
+
+        if (res.top_companies && res.top_companies.length > 0) {
+          topCompSection.style.display = 'block';
+          topCompList.innerHTML = res.top_companies.map((c, i) => `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-size: 0.72rem; color: #4f46e5; font-weight: 700;">Rank #${i+1}</div>
+                  <strong style="color: #0f172a; font-size: 0.95rem;">${c.company_name}</strong>
+                  <div style="font-size: 0.8rem; color: #64748b;">${c.role_title} (${c.experience_type})</div>
+                </div>
+                <div class="match-badge">
+                  ${c.match_score}% Match
+                </div>
+              </div>
+              <div style="margin-top: 8px; font-size: 0.78rem; color: #1e293b;">
+                <strong style="color: #166534;">Matched:</strong> ${c.matching_skills.join(', ') || 'None yet'}
+              </div>
+              <div style="margin-top: 4px; font-size: 0.78rem; background: #fffbeb; padding: 6px 8px; border-radius: 6px; border: 1px solid #fef3c7; color: #92400e;">
+                <strong>Skills to Acquire:</strong> ${c.missing_skills.join(', ') || 'None! You meet all required skills.'}
+              </div>
+            </div>
+          `).join('');
+        }
+        form.reset();
+      } catch (err) {
+        showStatus(err.message || 'Upload failed. Check backend.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitLabel.textContent = 'Register & Find Best Companies';
+      }
+    });
+  </script>
+</body>
+</html>

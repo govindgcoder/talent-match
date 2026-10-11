@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruiter Login — Talent Match</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <main class="container">
+    <div class="card">
+
+      <div class="header">
+        <h1>Recruiter Portal</h1>
+        <p class="subtext">Select an existing company or post a new requirement</p>
+      </div>
+
+      <!-- Quick Switch to Existing Company -->
+      <div class="form-group" style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+        <label for="existing-company">Select Existing Company</label>
+        <div style="display: flex; gap: 8px;">
+          <select id="existing-company" style="flex: 1;">
+            <option value="">-- Choose Existing Company --</option>
+          </select>
+          <button type="button" id="select-company-btn" class="btn-primary" style="width: auto; padding: 0 16px; white-space: nowrap;">
+            Login
+          </button>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 16px; color: #94a3b8; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;">
+        ── OR REGISTER NEW COMPANY ──
+      </div>
+
+      <!-- Company Registration Form -->
+      <form id="company-form">
+        <div class="form-group">
+          <label for="company-name">Company Name</label>
+          <input id="company-name" type="text" placeholder="e.g. Google, Tesla" required />
+        </div>
+
+        <div class="form-group">
+          <label for="role-title">Job Role / Designation</label>
+          <input id="role-title" type="text" placeholder="e.g. Junior Python Developer" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="experience-type">Hiring Level</label>
+            <select id="experience-type" required>
+              <option value="Fresher">Freshers (0 yrs)</option>
+              <option value="Experienced">Work Experience</option>
+            </select>
+          </div>
+          <div class="form-group" id="min-exp-group" style="display: none;">
+            <label for="min-experience">Min Experience (Years)</label>
+            <input id="min-experience" type="number" step="0.5" min="0" max="30" value="0" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="skills-expected">Expected Skills (comma-separated)</label>
+          <input id="skills-expected" type="text" placeholder="e.g. Python, SQL, FastAPI, Docker" required />
+        </div>
+
+        <div class="form-group">
+          <label for="location">Location</label>
+          <input id="location" type="text" placeholder="Remote, Bangalore" value="Remote" />
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn-primary" style="margin-top: 8px;">
+          <span id="submit-label">Save & Enter Recruiter Portal</span>
+        </button>
+
+        <div id="status-message" style="display: none;"></div>
+      </form>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { registerCompany, getCompanyList } from './api.js';
+
+    const form = document.getElementById('company-form');
+    const existingCompanySelect = document.getElementById('existing-company');
+    const selectCompanyBtn = document.getElementById('select-company-btn');
+    const expTypeSelect = document.getElementById('experience-type');
+    const minExpGroup = document.getElementById('min-exp-group');
+    const minExpInput = document.getElementById('min-experience');
+    const statusBox = document.getElementById('status-message');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitLabel = document.getElementById('submit-label');
+    let allCompanies = [];
+
+    expTypeSelect.addEventListener('change', () => {
+      minExpGroup.style.display = expTypeSelect.value === 'Experienced' ? 'block' : 'none';
+      if (expTypeSelect.value === 'Experienced' && minExpInput.value === '0') minExpInput.value = '1';
+    });
+
+    async function loadCompanies() {
+      try {
+        allCompanies = await getCompanyList();
+        existingCompanySelect.innerHTML = '<option value="">-- Choose Existing Company --</option>';
+        allCompanies.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.company_id;
+          opt.textContent = `${c.company_name} — ${c.role_title} (${c.experience_type})`;
+          existingCompanySelect.appendChild(opt);
+        });
+      } catch (err) {}
+    }
+    loadCompanies();
+
+    selectCompanyBtn.addEventListener('click', () => {
+      const selectedId = existingCompanySelect.value;
+      if (!selectedId) return showStatus('Please select a company.', 'error');
+      const found = allCompanies.find(c => c.company_id == selectedId);
+      if (found) {
+        localStorage.setItem('activeCompany', JSON.stringify(found));
+        window.location.href = 'recruiter.html';
+      }
+    });
+
+    function showStatus(text, type) {
+      statusBox.style.display = 'block';
+      statusBox.textContent = text;
+      statusBox.style.background = type === 'error' ? '#fef2f2' : '#f0fdf4';
+      statusBox.style.color = type === 'error' ? '#991b1b' : '#166534';
+      statusBox.style.border = type === 'error' ? '1px solid #fecaca' : '1px solid #bbf7d0';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const companyName = document.getElementById('company-name').value.trim();
+      const roleTitle = document.getElementById('role-title').value.trim();
+      const expType = document.getElementById('experience-type').value;
+      const minExp = expType === 'Experienced' ? parseFloat(document.getElementById('min-experience').value) : 0.0;
+      const skillsExpected = document.getElementById('skills-expected').value.trim();
+      const location = document.getElementById('location').value.trim() || 'Remote';
+
+      if (!companyName || !roleTitle || !skillsExpected) return showStatus('Please fill all required fields.', 'error');
+
+      submitBtn.disabled = true;
+      submitLabel.textContent = 'Saving...';
+      try {
+        const res = await registerCompany({ company_name: companyName, role_title: roleTitle, experience_type: expType, min_experience: minExp, skills_expected: skillsExpected, location });
+        localStorage.setItem('activeCompany', JSON.stringify({ company_id: res.company_id, company_name: companyName, role_title: roleTitle, experience_type: expType, min_experience: minExp, skills_expected: skillsExpected, location }));
+        window.location.href = 'recruiter.html';
+      } catch (err) {
+        showStatus(err.message || 'Registration failed.', 'error');
+        submitBtn.disabled = false;
+        submitLabel.textContent = 'Save & Enter Recruiter Portal';
+      }
+    });
+  </script>
+</body>
+</html>
