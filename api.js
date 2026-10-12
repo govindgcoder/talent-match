@@ -1,13 +1,14 @@
 const API_BASE = "http://localhost:8000";
 
 // --- Candidate API ---
-export async function uploadCandidate({ name, age, gender, experience_years, contact_no, resume_file }) {
+export async function uploadCandidate({ name, age, gender, experience_years, contact_no, work_preference, resume_file }) {
   const form = new FormData();
   form.append("name", name);
   form.append("age", age);
   form.append("gender", gender);
   form.append("experience_years", experience_years);
   form.append("contact_no", contact_no);
+  form.append("work_preference", work_preference || "Flexible");
   form.append("resume_file", resume_file);
 
   const res = await fetch(`${API_BASE}/api/candidates/upload`, {
@@ -53,11 +54,12 @@ export async function getCompanyApplicants(companyId) {
   return res.json();
 }
 
-export async function searchCandidates({ query, min_experience, gender }) {
+export async function searchCandidates({ query, min_experience, gender, work_preference }) {
   const params = new URLSearchParams();
   if (query) params.set("query", query);
   if (min_experience !== undefined && min_experience !== null) params.set("min_experience", min_experience);
   if (gender) params.set("gender", gender);
+  if (work_preference) params.set("work_preference", work_preference);
 
   const res = await fetch(`${API_BASE}/api/candidates/search?${params}`);
   if (!res.ok) throw new Error("Search failed");

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talent Match</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .portal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 640px) {
+      .portal-grid { grid-template-columns: 1fr; }
+    }
+    a.portal {
+      display: block;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px 16px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    a.portal:hover {
+      border-color: #6366f1;
+      box-shadow: 0 1px 3px rgba(99, 102, 241, 0.12);
+      transform: translateY(-1px);
+    }
+    a.portal h3 { margin-bottom: 4px; }
+    a.portal .arrow {
+      display: block;
+      margin-top: 12px;
+      color: #6366f1;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .footer-note {
+      margin-top: 26px;
+      text-align: center;
+      font-size: 0.74rem;
+      color: #94a3b8;
+    }
+    .brand {
+      font-family: 'Arial Rounded MT Bold', Futura, Tahoma, sans-serif;
+      font-size: clamp(2.6rem, 9vw, 5.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.02;
+      margin: 4px 0 8px;
+      background: linear-gradient(120deg, #0f172a 0%, #5a4ff5 45%, #7c3aed 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .tagline {
+      font-size: 0.95rem;
+      color: #64748b;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .rule {
+      width: 64px;
+      height: 3px;
+      margin: 14px auto 22px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #5a4ff5, #7c3aed);
+    }
+  </style>
+</head>
+<body>
+
+  <main class="container-wide">
+    <div class="card">
+
+      <div class="header">
+        <p class="tagline">A Relational Database Application</p>
+        <h1 class="brand">TALENT MATCH</h1>
+        <div class="rule"></div>
+        <p class="subtext">AI-assisted candidate&ndash;company matching</p>
+      </div>
+
+      <div class="portal-grid">
+        <a class="portal" href="candidate.html">
+          <h3>Candidate</h3>
+          <p class="subtext">Register, upload your resume PDF, and see your top 3 matched companies.</p>
+          <span class="arrow">Open portal &rarr;</span>
+        </a>
+
+        <a class="portal" href="recruiter_login.html">
+          <h3>Recruiter</h3>
+          <p class="subtext">Post a role and search candidates by skills, experience, or plain English.</p>
+          <span class="arrow">Open portal &rarr;</span>
+        </a>
+
+        <a class="portal" href="admin_db.html">
+          <h3>Admin</h3>
+          <p class="subtext">Inspect every table, index, and the audit log directly.</p>
+          <span class="arrow">Open portal &rarr;</span>
+        </a>
+      </div>
+
+      <p class="footer-note">FastAPI &middot; SQLite &middot; Gemini semantic search</p>
+
+    </div>
+  </main>
+
+</body>
+</html>

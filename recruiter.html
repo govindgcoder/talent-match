@@ -39,9 +39,35 @@
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
-          <input id="search-query" type="text" class="search-input-field" placeholder="Search by name, skill (e.g. Python, SQL)..." />
+          <input id="search-query" type="text" class="search-input-field" placeholder="Ask in plain English: e.g. STM32 Embedded systems engineer" />
           <button type="button" id="search-btn" class="btn-secondary">Search</button>
         </div>
+      </div>
+
+      <!-- Facet filters: applied alongside the vector query -->
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+        <label style="font-size: 0.78rem; font-weight: 700; color: #475569; align-self: center;">Filter:</label>
+        <select id="filter-exp" class="tab-chip" style="padding: 6px 10px;">
+          <option value="">Experience: Any</option>
+          <option value="0">0+ yrs (Fresher)</option>
+          <option value="1">1+ yrs</option>
+          <option value="2">2+ yrs</option>
+          <option value="3">3+ yrs</option>
+        </select>
+        <select id="filter-gender" class="tab-chip" style="padding: 6px 10px;">
+          <option value="">Gender: Any</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+        <select id="filter-pref" class="tab-chip" style="padding: 6px 10px;">
+          <option value="">Work Mode: Any</option>
+          <option value="Remote">Remote</option>
+          <option value="Hybrid">Hybrid</option>
+          <option value="On-site">On-site</option>
+          <option value="Flexible">Flexible</option>
+        </select>
+        <button type="button" id="clear-filters" class="btn-secondary" style="font-size: 0.78rem; padding: 6px 12px;">Reset</button>
       </div>
 
       <!-- Applicants Results Grid -->
@@ -60,6 +86,7 @@
   <script type="module">
     import { getCompanyApplicants, searchCandidates, getResumeUrl } from './api.js';
 
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     let activeCompany = JSON.parse(localStorage.getItem('activeCompany') || 'null');
     const compNameDisplay = document.getElementById('company-name-display');
     const compDetailsDisplay = document.getElementById('company-details-display');
@@ -84,33 +111,55 @@
         const data = await getCompanyApplicants(activeCompany.company_id);
         renderCandidates(data, `Matched for ${activeCompany.company_name}`);
       } catch (err) {
-        resultsGrid.innerHTML = `<div style="color: #b91c1c; text-align: center;">Error loading applicants: ${err.message}</div>`;
+        resultsGrid.innerHTML = `<div style="color: #b91c1c; text-align: center;">Error loading applicants: ${esc(err.message)}</div>`;
       }
+    }
+
+    function activeFilters() {
+      const exp = document.getElementById('filter-exp').value;
+      return {
+        min_experience: exp === '' ? undefined : Number(exp),
+        gender: document.getElementById('filter-gender').value || undefined,
+        work_preference: document.getElementById('filter-pref').value || undefined,
+      };
+    }
+
+    function filterLabel() {
+      const f = activeFilters();
+      const bits = [];
+      if (f.min_experience !== undefined) bits.push(`${f.min_experience}+ yrs`);
+      if (f.gender) bits.push(f.gender);
+      if (f.work_preference) bits.push(f.work_preference);
+      return bits.join(' · ');
     }
 
     async function handleSearch() {
       const q = searchInput.value.trim();
       resultsGrid.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">Searching...</div>';
       try {
-        const data = await searchCandidates({ query: q });
-        renderCandidates(data, q ? `Search for "${q}"` : 'All Candidates');
+        const data = await searchCandidates({ query: q, ...activeFilters() });
+        const facet = filterLabel();
+        const label = [q ? `Search for "${esc(q)}"` : 'All Candidates', facet].filter(Boolean).join(' · ');
+        renderCandidates(data, label);
       } catch (err) {
-        resultsGrid.innerHTML = `<div style="color: #b91c1c; text-align: center;">Search error: ${err.message}</div>`;
+        resultsGrid.innerHTML = `<div style="color: #b91c1c; text-align: center;">Search error: ${esc(err.message)}</div>`;
       }
     }
 
     function renderCandidates(candidates, label) {
       if (!candidates || candidates.length === 0) {
-        resultsCount.textContent = `Found 0 applicants (${label})`;
+        resultsCount.textContent = `Found 0 applicants (${esc(label)})`;
         resultsGrid.innerHTML = '';
         emptyState.style.display = 'block';
         return;
       }
       emptyState.style.display = 'none';
-      resultsCount.textContent = `Found ${candidates.length} applicant${candidates.length > 1 ? 's' : ''} (${label})`;
+      resultsCount.textContent = `Found ${candidates.length} applicant${candidates.length > 1 ? 's' : ''} (${esc(label)})`;
 
       resultsGrid.innerHTML = candidates.map(c => {
         const score = c.match_score !== undefined ? c.match_score : null;
+        // Vector search returns similarity_score in 0..1; show it as a percentage.
+        const sim = c.similarity_score !== undefined ? Math.round(c.similarity_score * 100) : null;
         const name = c.candidate_name || c.name;
         const exp = c.experience_years;
         const resumeUrl = getResumeUrl(c.candidate_uid || c.uid);
@@ -118,26 +167,43 @@
         return `
           <article class="candidate-card">
             <div class="candidate-top">
-              <h3 class="candidate-name">${name}</h3>
-              ${score !== null ? `<span class="match-badge">${score}% Match</span>` : ''}
+              <h3 class="candidate-name">${esc(name)}</h3>
+              ${sim !== null ? `<span class="match-badge" style="${sim < 30 ? 'background:#fef2f2;border-color:#fecaca;color:#991b1b;' : ''}">${sim}% Vector</span>` : ''}
+              ${score !== null ? `<span class="match-badge">${esc(score)}% Match</span>` : ''}
             </div>
             <div class="candidate-details">
-              <div><span class="detail-label">Experience:</span><strong>${exp} yrs</strong></div>
-              <div><span class="detail-label">Age:</span><strong>${c.age}</strong></div>
-              <div><span class="detail-label">Gender:</span><strong style="text-transform: capitalize;">${c.gender}</strong></div>
-              <div><span class="detail-label">Contact:</span><strong>${c.contact_no}</strong></div>
+              <div><span class="detail-label">Experience:</span><strong>${esc(exp)} yrs</strong></div>
+              <div><span class="detail-label">Age:</span><strong>${esc(c.age)}</strong></div>
+              <div><span class="detail-label">Gender:</span><strong style="text-transform: capitalize;">${esc(c.gender)}</strong></div>
+              <div><span class="detail-label">Contact:</span><strong>${esc(c.contact_no)}</strong></div>
+              ${c.work_preference ? `<div><span class="detail-label">Work Mode:</span><strong>${esc(c.work_preference)}</strong></div>` : ''}
             </div>
-            ${c.matching_skills ? `<div style="font-size: 0.78rem; color: #15803d; margin-top: 6px;"><strong>Matched:</strong> ${c.matching_skills}</div>` : ''}
-            ${c.missing_skills ? `<div style="font-size: 0.78rem; color: #b45309; margin-top: 2px;"><strong>Missing:</strong> ${c.missing_skills}</div>` : ''}
-            ${c.skills && !c.matching_skills ? `<div style="font-size: 0.78rem; color: #4338ca; margin-top: 4px;">Skills: ${c.skills}</div>` : ''}
+            ${c.matching_skills ? `<div style="font-size: 0.78rem; color: #15803d; margin-top: 6px;"><strong>Matched:</strong> ${esc(c.matching_skills)}</div>` : ''}
+            ${c.missing_skills ? `<div style="font-size: 0.78rem; color: #b45309; margin-top: 2px;"><strong>Missing:</strong> ${esc(c.missing_skills)}</div>` : ''}
+            ${c.skills && !c.matching_skills ? `<div style="font-size: 0.78rem; color: #4338ca; margin-top: 4px;">Skills: ${esc(c.skills)}</div>` : ''}
             <div class="candidate-actions">
-              <a href="${resumeUrl}" target="_blank" class="btn-secondary" style="color: #4338ca; border-color: #c7d2fe; background: #eef2ff;">View Resume PDF</a>
-              <button type="button" class="btn-secondary" onclick="navigator.clipboard.writeText('${c.contact_no}'); alert('Copied: ${c.contact_no}');">Copy Contact</button>
+              <a href="${esc(resumeUrl)}" target="_blank" class="btn-secondary" style="color: #4338ca; border-color: #c7d2fe; background: #eef2ff;">View Resume PDF</a>
+              <button type="button" class="btn-secondary" data-contact="${esc(c.contact_no)}">Copy Contact</button>
             </div>
           </article>
         `;
       }).join('');
     }
+
+    resultsGrid.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-contact]');
+      if (!btn) return;
+      navigator.clipboard.writeText(btn.dataset.contact);
+      alert('Copied: ' + btn.dataset.contact);
+    });
+    document.getElementById('clear-filters').addEventListener('click', () => {
+      document.getElementById('filter-exp').value = '';
+      document.getElementById('filter-gender').value = '';
+      document.getElementById('filter-pref').value = '';
+      handleSearch();
+    });
+    ['filter-exp', 'filter-gender', 'filter-pref'].forEach(id =>
+      document.getElementById(id).addEventListener('change', handleSearch));
 
     viewSuitedBtn.addEventListener('click', loadSuitedApplicants);
     searchBtn.addEventListener('click', handleSearch);

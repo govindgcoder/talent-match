@@ -45,6 +45,7 @@
   </main>
 
   <script>
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     let dbData = {};
     let activeTable = 'COMPANY';
 
@@ -84,8 +85,8 @@
       }
 
       const columns = Object.keys(rows[0]);
-      thead.innerHTML = `<tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>`;
-      tbody.innerHTML = rows.map(r => `<tr>${columns.map(c => `<td>${r[c] !== null && r[c] !== undefined ? String(r[c]) : ''}</td>`).join('')}</tr>`).join('');
+      thead.innerHTML = `<tr>${columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr>`;
+      tbody.innerHTML = rows.map(r => `<tr>${columns.map(c => `<td>${r[c] !== null && r[c] !== undefined ? esc(r[c]) : ''}</td>`).join('')}</tr>`).join('');
     }
 
     document.getElementById('refresh-btn').addEventListener('click', fetchDatabase);

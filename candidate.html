@@ -52,6 +52,16 @@
         </div>
 
         <div class="form-group">
+          <label for="work-pref">Work Preference</label>
+          <select id="work-pref" required>
+            <option value="Remote">Remote</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="On-site">On-site</option>
+            <option value="Flexible">Flexible</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="resume">Upload Resume (PDF)</label>
           <input id="resume" type="file" accept=".pdf,application/pdf" required />
         </div>
@@ -83,6 +93,7 @@
     const topCompSection = document.getElementById('top-companies-section');
     const topCompList = document.getElementById('top-companies-list');
 
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     function showStatus(text, type) {
       statusBox.style.display = 'block';
       statusBox.textContent = text;
@@ -99,6 +110,7 @@
       const gender = document.getElementById('gender').value;
       const exp = document.getElementById('experience').value;
       const contact = document.getElementById('contact').value.trim();
+      const workPref = document.getElementById('work-pref').value;
       const file = document.getElementById('resume').files[0];
 
       if (!name || name.length < 2) return showStatus('Please enter full name (min 2 chars).', 'error');
@@ -113,7 +125,7 @@
       showStatus('Extracting skills and finding best company matches...', 'info');
 
       try {
-        const res = await uploadCandidate({ name, age: parseInt(age), gender, experience_years: parseFloat(exp), contact_no: contact, resume_file: file });
+        const res = await uploadCandidate({ name, age: parseInt(age), gender, experience_years: parseFloat(exp), contact_no: contact, work_preference: workPref, resume_file: file });
         showStatus('Registered successfully! Resume processed.', 'success');
 
         if (res.top_companies && res.top_companies.length > 0) {
@@ -123,18 +135,18 @@
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                   <div style="font-size: 0.72rem; color: #4f46e5; font-weight: 700;">Rank #${i+1}</div>
-                  <strong style="color: #0f172a; font-size: 0.95rem;">${c.company_name}</strong>
-                  <div style="font-size: 0.8rem; color: #64748b;">${c.role_title} (${c.experience_type})</div>
+                  <strong style="color: #0f172a; font-size: 0.95rem;">${esc(c.company_name)}</strong>
+                  <div style="font-size: 0.8rem; color: #64748b;">${esc(c.role_title)} (${esc(c.experience_type)})</div>
                 </div>
                 <div class="match-badge">
-                  ${c.match_score}% Match
+                  ${esc(c.match_score)}% Match
                 </div>
               </div>
               <div style="margin-top: 8px; font-size: 0.78rem; color: #1e293b;">
-                <strong style="color: #166534;">Matched:</strong> ${c.matching_skills.join(', ') || 'None yet'}
+                <strong style="color: #166534;">Matched:</strong> ${esc(c.matching_skills.join(', ')) || 'None yet'}
               </div>
               <div style="margin-top: 4px; font-size: 0.78rem; background: #fffbeb; padding: 6px 8px; border-radius: 6px; border: 1px solid #fef3c7; color: #92400e;">
-                <strong>Skills to Acquire:</strong> ${c.missing_skills.join(', ') || 'None! You meet all required skills.'}
+                <strong>Skills to Acquire:</strong> ${esc(c.missing_skills.join(', ')) || 'None! You meet all required skills.'}
               </div>
             </div>
           `).join('');
